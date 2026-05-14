@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Spa — Precision Auto Detailing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Overpass+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #181818;
+  --gold: #b8924a;
+  --gold-light: #d4aa6a;
+  --silver: #777;
+  --muted: #aaa;
+  --bg: #eef0f4;
+  --white: #ffffff;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Overpass Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════════════════════
+   STICKY SCROLL SECTION
+═══════════════════════════════════ */
+#scroll-track {
+  position: relative;
+  height: 500vh;
+}
+
+#stage {
+  position: sticky; top: 0;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+#studio-bg {
+  position: absolute; inset: 0; z-index: 0;
+  /* Cool studio white matching the video: bright centre, blue-grey perimeter */
+  background:
+    radial-gradient(ellipse 75% 65% at 62% 46%, #ffffff 0%, #f5f6f8 45%, #dde0e8 80%, #c8cdd8 100%),
+    linear-gradient(160deg, #d0d4de 0%, #e8eaf0 40%, #ffffff 60%, #e4e6ec 100%);
+}
+/* Soft warm floor shadow — matches the video floor gradient */
+#studio-bg::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 38%;
+  background: linear-gradient(to top, rgba(160,162,175,0.32) 0%, rgba(180,183,195,0.10) 55%, transparent 100%);
+}
+/* Very subtle top-edge darkening for depth */
+#studio-bg::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 20%;
+  background: linear-gradient(to bottom, rgba(140,145,165,0.12) 0%, transparent 100%);
+}
+
+#three-canvas {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none;
+}
+
+/* NAV */
+#nav {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2.2rem 5.5vw;
+  pointer-events: none;
+  animation: fadeDown 1s cubic-bezier(0.16,1,0.3,1) 0.1s both;
+}
+.nav-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 400;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
+}
+.nav-logo span { color: var(--gold); }
+.nav-links { display: flex; gap: 2.8rem; list-style: none; }
+.nav-links li {
+  font-size: 8.5px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--silver);
+}
+
+/* HERO COPY — left half */
+#hero {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding: 0 4vw 0 5.5vw;
+  pointer-events: none;
+  max-width: 48%;
+}
+.hero-eyebrow {
+  font-size: clamp(8px, 0.8vw, 10px);
+  letter-spacing: 0.36em; text-transform: uppercase; color: var(--gold);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s both;
+}
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(44px, 6vw, 96px);
+  font-weight: 300; line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--ink);
+  margin-bottom: 2rem;
+  animation: fadeUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.45s both;
+}
+.hero-title em { font-style: italic; color: var(--gold); }
+.hero-rule {
+  width: 36px; height: 1px; background: var(--gold); opacity: 0.55;
+  margin-bottom: 1.6rem;
+  animation: fadeUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.6s both;
+}
+.hero-sub {
+  font-size: clamp(9px, 0.85vw, 11px); font-weight: 300;
+  color: var(--silver); letter-spacing: 0.06em; line-height: 2.1; max-width: 280px;
+  animation: fadeUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.7s both;
+}
+.hero-cta {
+  margin-top: 2.4rem;
+  font-size: 8.5px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--ink); border-bottom: 1px solid var(--gold);
+  padding-bottom: 5px; opacity: 0.65;
+  animation: fadeUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.85s both;
+  pointer-events: auto; cursor: pointer;
+}
+
+/* SERVICE PILLS */
+#tags {
+  position: absolute; bottom: 2.6rem; left: 5.5vw; z-index: 10;
+  display: flex; gap: 2rem; pointer-events: none;
+  animation: fadeUp 1s ease 1.3s both;
+}
+.tag {
+  font-size: 7.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.tag::before {
+  content: ''; display: block; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--gold); opacity: 0.7;
+}
+
+/* SCROLL HINT */
+#scroll-hint {
+  position: absolute; bottom: 2.6rem; right: 4rem; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  opacity: 1; transition: opacity 0.4s ease; pointer-events: none;
+  animation: fadeUp 1s ease 1.4s both;
+}
+#scroll-hint span { font-size: 7.5px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+.scroll-line {
+  width: 1px; height: 42px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* PROGRESS */
+#progress-bar {
+  position: fixed; top: 0; left: 0;
+  height: 1px; width: 0%;
+  background: linear-gradient(to right, var(--gold), var(--gold-light), var(--gold));
+  z-index: 200; transition: width 0.05s linear;
+}
+#side-progress {
+  position: fixed; top: 50%; right: 1.8rem;
+  transform: translateY(-50%); z-index: 100;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+}
+.sp-label { font-size: 7.5px; letter-spacing: 0.2em; color: var(--muted); writing-mode: vertical-rl; opacity: 0.45; }
+.sp-track { width: 1px; height: 90px; background: rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+.sp-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: var(--gold); transition: height 0.08s linear; }
+#corner-mark {
+  position: fixed; bottom: 1.6rem; left: 5.5vw; z-index: 100;
+  font-size: 7.5px; letter-spacing: 0.22em; color: var(--muted); opacity: 0.3;
+}
+
+/* ═══════════════════════════════════
+   BELOW-FOLD CONTENT
+═══════════════════════════════════ */
+#below {
+  position: relative;
+  background: var(--bg);
+}
+
+/* ── PROCESS STRIP ── */
+#process {
+  padding: 9rem 5.5vw 8rem;
+  background: var(--white);
+}
+.section-label {
+  font-size: 8px; letter-spacing: 0.4em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 3.5rem;
+  display: flex; align-items: center; gap: 1rem;
+}
+.section-label::after {
+  content: ''; flex: 1; max-width: 40px; height: 1px; background: var(--gold); opacity: 0.4;
+}
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.process-step {
+  padding: 2.5rem 2.5rem 2.5rem 0;
+  border-right: 1px solid rgba(0,0,0,0.08);
+  padding-right: 2.5rem;
+}
+.process-step:last-child { border-right: none; padding-right: 0; }
+.process-step:not(:first-child) { padding-left: 2.5rem; }
+.step-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 48px; font-weight: 300; color: rgba(0,0,0,0.06);
+  line-height: 1; margin-bottom: 1.2rem; letter-spacing: -0.03em;
+}
+.step-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 300; color: var(--ink);
+  margin-bottom: 0.9rem; letter-spacing: -0.01em;
+}
+.step-body {
+  font-size: 10px; font-weight: 300; line-height: 2;
+  color: var(--silver); letter-spacing: 0.04em;
+}
+
+/* ── SERVICES ── */
+#services {
+  padding: 9rem 5.5vw 8rem;
+  background: var(--bg);
+}
+.services-head {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4rem; align-items: end; margin-bottom: 5rem;
+}
+.services-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(36px, 4vw, 62px); font-weight: 300;
+  line-height: 1; letter-spacing: -0.02em; color: var(--ink);
+}
+.services-title em { font-style: italic; color: var(--gold); }
+.services-desc {
+  font-size: 10px; font-weight: 300; line-height: 2;
+  color: var(--silver); letter-spacing: 0.04em; max-width: 360px;
+  align-self: end;
+}
+.services-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+}
+.service-card {
+  background: var(--white);
+  padding: 3rem 2.5rem;
+  position: relative; overflow: hidden;
+  transition: background 0.3s ease;
+  cursor: default;
+}
+.service-card:hover { background: #f9f8f6; }
+.service-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 2px; height: 0%; background: var(--gold);
+  transition: height 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.service-card:hover::before { height: 100%; }
+.sc-tag {
+  font-size: 7.5px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 1.8rem; display: block;
+}
+.sc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 300; color: var(--ink);
+  margin-bottom: 1rem; letter-spacing: -0.01em; line-height: 1.1;
+}
+.sc-body {
+  font-size: 9.5px; font-weight: 300; line-height: 2;
+  color: var(--silver); letter-spacing: 0.03em; margin-bottom: 2rem;
+}
+.sc-price {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 300; color: var(--ink);
+}
+.sc-price span {
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px; letter-spacing: 0.2em; color: var(--muted); margin-left: 4px;
+}
+
+/* ── STATS BAR ── */
+#stats {
+  background: var(--ink);
+  padding: 5rem 5.5vw;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.stat-item {
+  padding: 0 3rem 0 0; border-right: 1px solid rgba(255,255,255,0.07);
+  text-align: left;
+}
+.stat-item:first-child { padding-left: 0; }
+.stat-item:last-child { border-right: none; padding-right: 0; padding-left: 3rem; }
+.stat-item:not(:first-child):not(:last-child) { padding-left: 3rem; }
+.stat-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(40px, 4vw, 64px); font-weight: 300;
+  color: var(--white); line-height: 1; letter-spacing: -0.03em;
+  margin-bottom: 0.6rem;
+}
+.stat-num em { font-style: normal; color: var(--gold); }
+.stat-label {
+  font-size: 8px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ── TESTIMONIAL ── */
+#testimonials {
+  padding: 9rem 5.5vw;
+  background: var(--white);
+}
+.testi-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4rem;
+  margin-top: 4rem;
+}
+.testi-card {
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding-top: 2rem;
+}
+.testi-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 300; font-style: italic;
+  line-height: 1.6; color: var(--ink); margin-bottom: 1.8rem;
+}
+.testi-author {
+  font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+}
+.testi-car {
+  font-size: 8px; letter-spacing: 0.15em; color: var(--gold);
+  margin-top: 4px; text-transform: uppercase;
+}
+
+/* ── BOOKING CTA ── */
+#booking {
+  padding: 10rem 5.5vw;
+  background: var(--bg);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; align-items: center;
+}
+.booking-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(36px, 4.5vw, 68px);
+  font-weight: 300; line-height: 0.95;
+  letter-spacing: -0.02em; color: var(--ink);
+}
+.booking-title em { font-style: italic; color: var(--gold); }
+.booking-right { display: flex; flex-direction: column; gap: 2rem; }
+.booking-info {
+  font-size: 10px; font-weight: 300; line-height: 2.1;
+  color: var(--silver); letter-spacing: 0.04em;
+}
+.booking-items {
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.booking-item {
+  display: flex; align-items: center; gap: 1rem;
+  font-size: 9px; letter-spacing: 0.12em; color: var(--ink);
+}
+.booking-item::before {
+  content: ''; display: block; width: 20px; height: 1px; background: var(--gold);
+}
+.book-btn {
+  display: inline-flex; align-items: center; gap: 1rem;
+  background: var(--ink); color: var(--white);
+  padding: 1.1rem 2.4rem;
+  font-family: 'Overpass Mono', monospace;
+  font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase;
+  cursor: pointer; border: none; margin-top: 1rem;
+  transition: background 0.25s ease;
+  width: fit-content;
+}
+.book-btn:hover { background: var(--gold); }
+.book-btn::after { content: '→'; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink);
+  padding: 4rem 5.5vw;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white);
+}
+.footer-logo span { color: var(--gold); }
+.footer-links { display: flex; gap: 2.5rem; list-style: none; }
+.footer-links li { font-size: 8px; letter-spacing: 0.24em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+.footer-copy { font-size: 8px; letter-spacing: 0.15em; color: rgba(255,255,255,0.15); }
+
+/* ═══════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Reveal on scroll */
+.reveal {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="side-progress">
+  <div class="sp-label">reveal</div>
+  <div class="sp-track"><div class="sp-fill" id="sp-fill"></div></div>
+</div>
+<div id="corner-mark">car spa studio</div>
+
+<!-- ═══ STICKY HERO ═══ -->
+<div id="scroll-track">
+  <div id="stage">
+    <div id="studio-bg"></div>
+    <canvas id="three-canvas"></canvas>
+
+    <nav id="nav">
+      <div class="nav-logo">Car<span>.</span>Spa</div>
+      <ul class="nav-links">
+        <li>Services</li>
+        <li>Process</li>
+        <li>Gallery</li>
+        <li>Book</li>
+      </ul>
+    </nav>
+
+    <div id="hero">
+      <p class="hero-eyebrow">Precision Auto Detailing</p>
+      <h1 class="hero-title">The art of<br><em>perfection</em><br>in every<br>panel.</h1>
+      <div class="hero-rule"></div>
+      <p class="hero-sub">
+        Concours-level preparation.<br>
+        Paint correction. Ceramic coating.<br>
+        Scroll to witness the process.
+      </p>
+      <span class="hero-cta">Book a consultation</span>
+    </div>
+
+    <div id="tags">
+      <div class="tag">Paint Correction</div>
+      <div class="tag">Ceramic Coat</div>
+      <div class="tag">PPF / Wrap</div>
+      <div class="tag">Interior Detail</div>
+    </div>
+
+    <div id="scroll-hint">
+      <span>scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BELOW-FOLD ═══ -->
+<div id="below">
+
+  <!-- PROCESS -->
+  <section id="process">
+    <div class="section-label reveal">Our Process</div>
+    <div class="process-grid">
+      <div class="process-step reveal">
+        <div class="step-num">01</div>
+        <div class="step-title">Inspection &amp; Assessment</div>
+        <p class="step-body">Every vehicle begins with a thorough inspection under high-intensity lighting. We document paint condition, swirl marks, and contamination before a single product touches the surface.</p>
+      </div>
+      <div class="process-step reveal" style="transition-delay:0.1s">
+        <div class="step-num">02</div>
+        <div class="step-title">Decontamination</div>
+        <p class="step-body">A full chemical decontamination removes iron fallout, tar, and industrial pollution. Clay bar treatment follows to lift embedded surface contaminants safely.</p>
+      </div>
+      <div class="process-step reveal" style="transition-delay:0.2s">
+        <div class="step-num">03</div>
+        <div class="step-title">Paint Correction</div>
+        <p class="step-body">Machine polishing by hand removes swirl marks, scratches, and oxidation. We refine the paint to a concours finish — the foundation for any coating or protection.</p>
+      </div>
+      <div class="process-step reveal" style="transition-delay:0.3s">
+        <div class="step-num">04</div>
+        <div class="step-title">Protection &amp; Coating</div>
+        <p class="step-body">Ceramic coating, paint protection film, or premium wax is applied depending on your chosen tier. Each protects your investment and amplifies depth and gloss.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services">
+    <div class="services-head">
+      <div>
+        <div class="section-label reveal">What We Offer</div>
+        <h2 class="services-title reveal">Every surface.<br><em>Perfected.</em></h2>
+      </div>
+      <p class="services-desc reveal">From a thorough maintenance detail to a full concours restoration, each tier is tailored to your vehicle's needs — with the same uncompromising attention to craft throughout.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <span class="sc-tag">Tier 01</span>
+        <div class="sc-title">Signature Detail</div>
+        <p class="sc-body">Full exterior wash and decontamination, hand-applied carnauba wax, interior vacuum and wipe-down, glass and trim dressed.</p>
+        <div class="sc-price">from £280 <span>/ session</span></div>
+      </div>
+      <div class="service-card reveal" style="transition-delay:0.1s">
+        <span class="sc-tag">Tier 02</span>
+        <div class="sc-title">Paint Correction</div>
+        <p class="sc-body">Single or multi-stage machine polish to remove swirls, light scratches, and water spot etching. Paint depth measured before and after.</p>
+        <div class="sc-price">from £650 <span>/ session</span></div>
+      </div>
+      <div class="service-card reveal" style="transition-delay:0.2s">
+        <span class="sc-tag">Tier 03</span>
+        <div class="sc-title">Ceramic Coating</div>
+        <p class="sc-body">Professional-grade 9H ceramic coating applied post-correction. Hydrophobic, UV-resistant, and warranted for up to five years.</p>
+        <div class="sc-price">from £1,200 <span>/ session</span></div>
+      </div>
+      <div class="service-card reveal" style="transition-delay:0s">
+        <span class="sc-tag">Tier 04</span>
+        <div class="sc-title">PPF Installation</div>
+        <p class="sc-body">Self-healing paint protection film on high-impact zones or full-body coverage, precision-cut to your exact bodywork.</p>
+        <div class="sc-price">from £1,800 <span>/ session</span></div>
+      </div>
+      <div class="service-card reveal" style="transition-delay:0.1s">
+        <span class="sc-tag">Tier 05</span>
+        <div class="sc-title">Interior Restoration</div>
+        <p class="sc-body">Leather conditioning, fabric deep-clean, headliner refresh, ozone treatment, and full trim and glass detailing throughout.</p>
+        <div class="sc-price">from £380 <span>/ session</span></div>
+      </div>
+      <div class="service-card reveal" style="transition-delay:0.2s">
+        <span class="sc-tag">Tier 06</span>
+        <div class="sc-title">Concours Package</div>
+        <p class="sc-body">The complete Car Spa treatment. Full correction, ceramic coating, PPF on high-wear areas, and interior restoration in a single comprehensive appointment.</p>
+        <div class="sc-price">from £3,400 <span>/ session</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div id="stats">
+    <div class="stat-item reveal">
+      <div class="stat-num">1<em>k</em><em>+</em></div>
+      <div class="stat-label">Vehicles Detailed</div>
+    </div>
+    <div class="stat-item reveal" style="transition-delay:0.1s">
+      <div class="stat-num">9<em>+</em></div>
+      <div class="stat-label">Years in Business</div>
+    </div>
+    <div class="stat-item reveal" style="transition-delay:0.2s">
+      <div class="stat-num">98<em>%</em></div>
+      <div class="stat-label">Client Satisfaction</div>
+    </div>
+    <div class="stat-item reveal" style="transition-delay:0.3s">
+      <div class="stat-num">5<em>★</em></div>
+      <div class="stat-label">Average Rating</div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="section-label reveal">Client Stories</div>
+    <div class="testi-grid">
+      <div class="testi-card reveal">
+        <p class="testi-quote">"The paint on my 911 has never looked better — not even when it left the factory. Absolutely meticulous work."</p>
+        <div class="testi-author">James R., London</div>
+        <div class="testi-car">Porsche 911 GT3 RS</div>
+      </div>
+      <div class="testi-card reveal" style="transition-delay:0.1s">
+        <p class="testi-quote">"I was sceptical a ceramic coating would make that much difference. I was wrong. Two years on and the car still beads perfectly."</p>
+        <div class="testi-author">Sophia M., Surrey</div>
+        <div class="testi-car">McLaren 720S</div>
+      </div>
+      <div class="testi-card reveal" style="transition-delay:0.2s">
+        <p class="testi-quote">"Brought my DB11 in for a full correction before selling. The buyer thought it was a brand-new car. Worth every penny."</p>
+        <div class="testi-author">David K., Mayfair</div>
+        <div class="testi-car">Aston Martin DB11</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOOKING CTA -->
+  <section id="booking">
+    <div class="booking-title reveal">
+      Reserve your<br><em>appointment.</em>
+    </div>
+    <div class="booking-right">
+      <p class="booking-info reveal">
+        We accept a limited number of vehicles each month to ensure every detail receives the attention it deserves. Contact us to discuss your car and arrange an assessment.
+      </p>
+      <div class="booking-items reveal">
+        <div class="booking-item">Free initial consultation and assessment</div>
+        <div class="booking-item">Tailored quote within 24 hours</div>
+        <div class="booking-item">Courtesy valeting on collection</div>
+        <div class="booking-item">Fully insured and certified technicians</div>
+      </div>
+      <button class="book-btn reveal">Request a booking</button>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Car<span>.</span>Spa</div>
+    <ul class="footer-links">
+      <li>Privacy</li>
+      <li>Terms</li>
+      <li>Instagram</li>
+    </ul>
+    <div class="footer-copy">© 2026 Car Spa Studio</div>
+  </footer>
+
+</div><!-- /below -->
+
+<script>
+/* ─────────────────────────────────────────
+   THREE.JS SCROLL-SCRUB VIDEO
+───────────────────────────────────────── */
+(function () {
+  const canvas = document.getElementById('three-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  // Orthographic -1..1 camera, standard full-screen quad setup
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  const video = document.createElement('video');
+  video.src = 'video.mp4';
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.loop = false;
+
+  let videoReady = false, videoDuration = 0, videoTexture = null;
+
+  /*
+    SHADER NOTES — fixing the upside-down car:
+    WebGL's VideoTexture samples with UV (0,0) at bottom-left.
+    HTML video frames have (0,0) at top-left.
+    Three.js PlaneGeometry UVs have (0,0) at bottom-left in clip space.
+    Net result: no manual Y-flip needed — sample vuv directly.
+    The previous version did `1.0 - vUv.y` which double-flipped and caused the inversion.
+  */
+  const vert = `
+    varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }
+  `;
+
+  const frag = `
+    uniform sampler2D uVideo;
+    uniform vec2  uResolution;
+    uniform vec2  uVideoAspect;
+    uniform bool  uReady;
+    // uRect: (x0, y0, width, height) all in 0..1
+    // y0=0 is BOTTOM of screen (GL convention, matches vUv.y)
+    uniform vec4  uRect;
+    varying vec2  vUv;
+
+    void main(){
+      if(!uReady){ gl_FragColor = vec4(0.0); return; }
+
+      float x0 = uRect.x, y0 = uRect.y, rw = uRect.z, rh = uRect.w;
+
+      if(vUv.x < x0 || vUv.x > x0+rw || vUv.y < y0 || vUv.y > y0+rh){
+        gl_FragColor = vec4(0.0); return;
+      }
+
+      // local UV inside rect, (0,0) bottom-left
+      vec2 loc = vec2((vUv.x - x0) / rw, (vUv.y - y0) / rh);
+
+      // contain-fit video into the rect
+      float rectAR  = (uResolution.x * rw) / (uResolution.y * rh);
+      float videoAR = uVideoAspect.x / uVideoAspect.y;
+      vec2 scale = (rectAR > videoAR)
+        ? vec2(videoAR / rectAR, 1.0)
+        : vec2(1.0, rectAR / videoAR);
+
+      vec2 vuv = (loc - 0.5) / scale + 0.5;
+
+      if(vuv.x < 0.0 || vuv.x > 1.0 || vuv.y < 0.0 || vuv.y > 1.0){
+        gl_FragColor = vec4(0.0); return;
+      }
+
+      vec4 col = texture2D(uVideo, vuv);
+
+      // soft feather at rect edges — blends car into white studio bg
+      float ex = smoothstep(0.0, 0.06, loc.x) * smoothstep(1.0, 0.94, loc.x);
+      float ey = smoothstep(0.0, 0.06, loc.y) * smoothstep(1.0, 0.94, loc.y);
+
+      gl_FragColor = vec4(col.rgb, col.a * ex * ey);
+    }
+  `;
+
+  const geo = new THREE.PlaneGeometry(2, 2);
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: frag,
+    uniforms: {
+      uVideo:       { value: null },
+      uResolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      uVideoAspect: { value: new THREE.Vector2(16, 9) },
+      uReady:       { value: false },
+      // x0=38% from left, y0=10% from bottom, width=58%, height=80%
+      uRect: { value: new THREE.Vector4(0.38, 0.10, 0.58, 0.80) },
+    },
+    transparent: true,
+  });
+
+  scene.add(new THREE.Mesh(geo, mat));
+
+  function resize() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    mat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  video.addEventListener('loadedmetadata', () => {
+    videoDuration = video.duration;
+    video.currentTime = 0;
+    videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+    mat.uniforms.uVideo.value = videoTexture;
+    mat.uniforms.uVideoAspect.value.set(video.videoWidth, video.videoHeight);
+    mat.uniforms.uReady.value = true;
+    videoReady = true;
+    video.pause();
+  });
+
+  video.load();
+  video.play().then(() => video.pause()).catch(() => {});
+
+  let currentTime = 0, targetTime = 0;
+  const progressBar = document.getElementById('progress-bar');
+  const spFill      = document.getElementById('sp-fill');
+  const scrollHint  = document.getElementById('scroll-hint');
+
+  window.addEventListener('scroll', () => {
+    const sy  = window.scrollY;
+    const max = document.getElementById('scroll-track').offsetHeight - window.innerHeight;
+    const p   = Math.min(Math.max(sy / max, 0), 1);
+
+    scrollHint.style.opacity = sy > 80 ? '0' : '1';
+    progressBar.style.width  = (p * 100) + '%';
+    spFill.style.height      = (p * 100) + '%';
+
+    if (videoReady && videoDuration > 0) targetTime = p * videoDuration;
+  }, { passive: true });
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+  let isSeeking = false, seekPending = null;
+
+  function doSeek(t) {
+    if (isSeeking) { seekPending = t; return; }
+    isSeeking = true;
+    video.currentTime = t;
+  }
+  video.addEventListener('seeked', () => {
+    isSeeking = false;
+    if (seekPending !== null) { const t = seekPending; seekPending = null; doSeek(t); }
+  });
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    if (videoReady) {
+      currentTime = lerp(currentTime, targetTime, 0.12);
+      if (Math.abs(currentTime - video.currentTime) > 0.033)
+        doSeek(Math.max(0, Math.min(currentTime, videoDuration)));
+      if (videoTexture) videoTexture.needsUpdate = true;
+    }
+    renderer.render(scene, camera);
+  })();
+})();
+
+/* ─────────────────────────────────────────
+   SCROLL REVEAL FOR BELOW-FOLD ELEMENTS
+───────────────────────────────────────── */
+(function () {
+  const els = document.querySelectorAll('.reveal');
+  const io  = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>
